@@ -1,0 +1,26 @@
+{
+  "session": "sample-run",
+  "model": "deepseek-v4.1-flash-fast",
+  "turns": [
+    {"turn": 1, "input": 979, "cached": 0, "output": 400, "cost": 0.000568, "ttft_ms": 605},
+    {"turn": 2, "input": 1409, "cached": 1280, "output": 400, "cost": 0.000492, "ttft_ms": 532},
+    {"turn": 3, "input": 1835, "cached": 1792, "output": 400, "cost": 0.000484, "ttft_ms": 342},
+    {"turn": 4, "input": 2253, "cached": 2048, "output": 400, "cost": 0.000498, "ttft_ms": 591},
+    {"turn": 5, "input": 2665, "cached": 2560, "output": 400, "cost": 0.000489, "ttft_ms": 570},
+    {"turn": 6, "input": 3079, "cached": 2816, "output": 400, "cost": 0.000504, "ttft_ms": 333},
+    {"turn": 7, "input": 3495, "cached": 3328, "output": 400, "cost": 0.000495, "ttft_ms": 484},
+    {"turn": 8, "input": 3918, "cached": 3840, "output": 400, "cost": 0.000487, "ttft_ms": 578},
+    {"turn": 9, "input": 4336, "cached": 4096, "output": 400, "cost": 0.000502, "ttft_ms": 352},
+    {"turn": 10, "input": 4754, "cached": 4608, "output": 400, "cost": 0.000493, "ttft_ms": 397},
+    {"turn": 11, "input": 5168, "cached": 5120, "output": 400, "cost": 0.000484, "ttft_ms": 598},
+    {"turn": 12, "input": 5581, "cached": 5376, "output": 400, "cost": 0.000498, "ttft_ms": 372},
+    {"turn": 13, "input": 5996, "cached": 5888, "output": 400, "cost": 0.000490, "ttft_ms": 557},
+    {"turn": 14, "input": 6416, "cached": 6144, "output": 400, "cost": 0.000504, "ttft_ms": 598},
+    {"turn": 15, "input": 6829, "cached": 6656, "output": 400, "cost": 0.000496, "ttft_ms": 362},
+    {"turn": 16, "input": 7249, "cached": 7168, "output": 400, "cost": 0.000487, "ttft_ms": 374},
+    {"turn": 17, "input": 7668, "cached": 7424, "output": 400, "cost": 0.000502, "ttft_ms": 395},
+    {"turn": 18, "input": 8081, "cached": 7936, "output": 400, "cost": 0.000493, "ttft_ms": 514},
+    {"turn": 19, "input": 8495, "cached": 8448, "output": 47, "cost": 0.000061, "ttft_ms": 538},
+    {"turn": 20, "input": 8558, "cached": 8448, "output": 99, "cost": 0.000129, "ttft_ms": 518}
+  ]
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coral Run Inspector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Run Inspector</h1>
+    <div class="run-pick">
+      <label for="run">Run</label>
+      <select id="run"></select>
+      <button id="live">Run live</button>
+      <span id="status" class="status"></span>
+    </div>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="panel">
+    <h2>Cost across the run</h2>
+    <p class="hint">Cumulative billed spend vs the same run priced without free cached reads.</p>
+    <canvas id="costChart" height="110"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>Input per turn</h2>
+    <p class="hint">Each turn re-sends the whole conversation. Cached tokens are billed at $0.</p>
+    <canvas id="inputChart" height="110"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>Cache hit rate</h2>
+    <p class="hint">Share of each turn's input served from cache. Turn 1 is a cold start.</p>
+    <canvas id="hitChart" height="110"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>Per turn</h2>
+    <div class="table-wrap">
+      <table id="ledger">
+        <thead>
+          <tr><th>Turn</th><th>Input</th><th>Cached</th><th>New</th><th>Output</th><th>Hit</th><th>Cost</th><th>TTFT</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
