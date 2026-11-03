@@ -3,7 +3,6 @@
 A small Flask tool that reads one Coral Bricks agent run and shows, turn by turn, what it
 cost, how much of each turn's input was served from cache, and what the same run would cost
 with no caching at the model's current rates.
-
 The Coral console shows usage at the account level. This is the same data scoped to a single
 run, where you can see the re-read curve and where the cost actually goes.
 
@@ -16,6 +15,17 @@ run, where you can see the re-read curve and where the cost actually goes.
 
 Open http://127.0.0.1:5001. It loads with a sample run in the dropdown, so you can see the
 full view without a key or a live call.
+
+## Compare two models
+
+Capture the same workload on each model, then pick one in each dropdown (Run and vs) to overlay
+them: cumulative cost, TTFT per turn, and hit rate side by side.
+
+    export CORAL_KEY=cb_...
+    CORAL_MODEL=deepseek-v4.1-flash-fast python capture.py
+    CORAL_MODEL=deepseek-v4.1-flash python capture.py
+
+Refresh the page; both runs appear in the dropdowns.
 
 ## Run live
 
@@ -44,17 +54,6 @@ What this shows depends on the model. At current `deepseek-v4.1-flash-fast` rate
 and output dominates the bill, so caching is close to a wash on cost there; it's a larger saving
 on `deepseek-v4.1-flash`. The tool shows where a run's cost actually goes rather than claiming a
 fixed multiple.
-
-## Compare two models
-
-Capture the same workload on each model, then pick one in each dropdown (Run and vs) to overlay
-them: cumulative cost, TTFT per turn, and hit rate side by side.
-
-    export CORAL_KEY=cb_...
-    CORAL_MODEL=deepseek-v4.1-flash-fast python capture.py
-    CORAL_MODEL=deepseek-v4.1-flash python capture.py
-
-Refresh the page; both runs appear in the dropdowns.
 
 ## What to look for
 
