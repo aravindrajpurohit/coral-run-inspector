@@ -26,9 +26,14 @@ def analyze(raw):
     cum_cost = 0.0
     cum_nocache = 0.0
     turns = []
+    prev = None
     for t in raw["turns"]:
         cum_cost += t["cost"] or 0
         cum_nocache += t["input"] * in_rate + t["output"] * out_rate
+        # what was already sent and cacheable before this turn, rounded to the 256-token block
+        expected = ((prev["input"] + prev["output"]) // 256) * 256 if prev else 0
+        # a genuine miss, not block rounding: actual falls more than one block below expected
+        miss = expected > 0 and t["cached"] < expected - 256
         turns.append({
             "turn": t["turn"],
             "input": t["input"],
@@ -37,10 +42,14 @@ def analyze(raw):
             "output": t["output"],
             "cost": t["cost"],
             "ttft_ms": t.get("ttft_ms"),
+            "tools": t.get("tools", []),
+            "expected": expected,
+            "miss": miss,
             "hit": round(t["cached"] / t["input"] * 100, 1) if t["input"] else 0.0,
             "cum_cost": round(cum_cost, 6),
             "cum_nocache": round(cum_nocache, 6) if priced else None,
         })
+        prev = t
 
     tot_input = sum(t["input"] for t in raw["turns"])
     tot_cached = sum(t["cached"] for t in raw["turns"])
@@ -51,6 +60,7 @@ def analyze(raw):
         "new": tot_input - tot_cached,
         "output": sum(t["output"] for t in raw["turns"]),
         "hit": round(tot_cached / tot_input * 100, 1) if tot_input else 0.0,
+        "misses": sum(1 for x in turns if x["miss"]),
         "cost": round(cum_cost, 6),
         "nocache": round(cum_nocache, 6) if priced else None,
         "saved_x": round(cum_nocache / cum_cost, 2) if priced and cum_cost else None,
@@ -103,12 +113,14 @@ def live():
         cum_nocache = 0.0
         rows = []
         session = None
+        prev = None
         try:
             for raw in run_live(key, model):
                 session = raw["session"]
                 cum_cost += raw["cost"] or 0
                 cum_nocache += raw["input"] * in_rate + raw["output"] * out_rate
-                rows.append({k: raw[k] for k in ("turn", "input", "cached", "output", "cache_write", "cost", "ttft_ms")})
+                expected = ((prev["input"] + prev["output"]) // 256) * 256 if prev else 0
+                rows.append({k: raw[k] for k in ("turn", "input", "cached", "output", "cache_write", "cost", "ttft_ms", "tools")})
                 yield sse({"turn": {
                     "turn": raw["turn"],
                     "input": raw["input"],
@@ -117,10 +129,14 @@ def live():
                     "output": raw["output"],
                     "cost": raw["cost"],
                     "ttft_ms": raw["ttft_ms"],
+                    "tools": raw["tools"],
+                    "expected": expected,
+                    "miss": expected > 0 and raw["cached"] < expected - 256,
                     "hit": round(raw["cached"] / raw["input"] * 100, 1) if raw["input"] else 0.0,
                     "cum_cost": round(cum_cost, 6),
                     "cum_nocache": round(cum_nocache, 6),
                 }})
+                prev = raw
             if session:
                 os.makedirs(RUNS_DIR, exist_ok=True)
                 with open(os.path.join(RUNS_DIR, f"{session}.json"), "w") as f:

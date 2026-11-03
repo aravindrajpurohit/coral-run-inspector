@@ -1,15 +1,31 @@
 const usd = (v, dp = 4) => "$" + Number(v).toFixed(dp);
 const ktok = n => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "K" : String(n);
 const modelShort = id => (id || "").replace("deepseek-v4.1-", "");
+const lbl = r => modelShort(r.model) + " · " + r.session.slice(-4);
+const avgTtft = run => {
+  const xs = run.turns.map(r => r.ttft_ms).filter(x => x != null);
+  return xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : null;
+};
 
 const charts = {};
+
+function setMid(title, hint) {
+  document.getElementById("midTitle").textContent = title;
+  document.getElementById("midHint").textContent = hint;
+}
+
+function draw(id, config) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), config);
+}
 
 function tiles(t) {
   const nocache = t.nocache == null ? "n/a" : "~" + usd(t.nocache, 3);
   const savedsub = t.saved_x == null ? "no price data" : t.saved_x + "× the billed cost";
+  const hitsub = ktok(t.cached) + " of " + ktok(t.input) + (t.misses ? " · " + t.misses + " miss" + (t.misses > 1 ? "es" : "") : "");
   const items = [
     ["Run cost", usd(t.cost), t.turns + " turns"],
-    ["Served from cache", t.hit + "%", ktok(t.cached) + " of " + ktok(t.input) + " input"],
+    ["Served from cache", t.hit + "%", hitsub],
     ["Without caching", nocache, savedsub],
     ["New vs re-read", ktok(t.new), ktok(t.cached) + " re-read"],
   ];
@@ -34,16 +50,29 @@ function compareTiles(a, b) {
   document.getElementById("tiles").innerHTML = `<div class="cmp">${row(a)}${row(b)}</div>`;
 }
 
-function ledger(turns) {
-  document.querySelector("#ledger tbody").innerHTML = turns.map(r => `<tr>
-    <td>${r.turn}</td><td>${r.input.toLocaleString()}</td><td>${r.cached.toLocaleString()}</td>
-    <td>${r.new.toLocaleString()}</td><td>${r.output}</td><td>${r.hit}%</td>
-    <td>${usd(r.cost, 6)}</td><td>${r.ttft_ms ?? "-"} ms</td></tr>`).join("");
+function comparisonTable(a, b) {
+  const rows = [
+    ["Run cost", r => usd(r.totals.cost)],
+    ["Without caching", r => r.totals.nocache == null ? "n/a" : "~" + usd(r.totals.nocache, 3)],
+    ["vs no caching", r => r.totals.saved_x == null ? "n/a" : r.totals.saved_x + "×"],
+    ["Cache hit", r => r.totals.hit + "%"],
+    ["Genuine misses", r => r.totals.misses],
+    ["Turns", r => r.totals.turns],
+    ["Output tokens", r => r.totals.output.toLocaleString()],
+    ["Input re-read", r => r.totals.input.toLocaleString()],
+    ["Avg TTFT", r => avgTtft(r) == null ? "-" : avgTtft(r) + " ms"],
+  ];
+  const head = `<thead><tr><th>Metric</th><th>${lbl(a)}</th><th>${lbl(b)}</th></tr></thead>`;
+  const body = "<tbody>" + rows.map(([label, f]) =>
+    `<tr><td>${label}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`).join("") + "</tbody>";
+  document.getElementById("cmpTable").innerHTML = head + body;
 }
 
-function draw(id, config) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), config);
+function ledger(turns) {
+  document.querySelector("#ledger tbody").innerHTML = turns.map(r => `<tr class="${r.miss ? "miss" : ""}">
+    <td>${r.turn}</td><td>${r.input.toLocaleString()}</td><td>${r.cached.toLocaleString()}</td>
+    <td>${(r.expected ?? 0).toLocaleString()}</td><td>${r.new.toLocaleString()}</td><td>${r.output}</td>
+    <td>${r.hit}%</td><td>${usd(r.cost, 6)}</td><td>${r.ttft_ms ?? "-"} ms</td></tr>`).join("");
 }
 
 function costChart(run) {
@@ -51,7 +80,7 @@ function costChart(run) {
     { label: "With caching", data: run.turns.map(r => r.cum_cost), borderColor: "#e05a3f", pointStyle: "line", tension: 0.2, pointRadius: 0 },
   ];
   if (run.totals.nocache != null) {
-    data.push({ label: "Without caching", data: run.turns.map(r => r.cum_nocache), borderColor: "#a39c91", borderDash: [5, 4], pointStyle: "line", tension: 0.2, pointRadius: 0 });
+    data.push({ label: "Without caching", data: run.turns.map(r => r.cum_nocache), borderColor: "#a39c91", pointStyle: "line", tension: 0.2, pointRadius: 0 });
   }
   draw("costChart", {
     type: "line",
@@ -64,13 +93,11 @@ function costChart(run) {
   });
 }
 
-function setMid(title, hint) {
-  document.getElementById("midTitle").textContent = title;
-  document.getElementById("midHint").textContent = hint;
-}
-
 function render(run) {
   const labels = run.turns.map(r => r.turn);
+  document.getElementById("ledgerTitle").textContent = "Per turn";
+  document.getElementById("perTurnWrap").style.display = "";
+  document.getElementById("comparisonWrap").style.display = "none";
   tiles(run.totals);
   ledger(run.turns);
   costChart(run);
@@ -94,10 +121,30 @@ function render(run) {
 
   draw("hitChart", {
     type: "line",
-    data: { labels, datasets: [{ label: "Hit rate", data: run.turns.map(r => r.hit), borderColor: "#e05a3f", tension: 0.2, pointRadius: 2 }] },
+    data: {
+      labels,
+      datasets: [{
+        label: "Hit rate",
+        data: run.turns.map(r => r.hit),
+        borderColor: "#e05a3f",
+        tension: 0.2,
+        pointRadius: run.turns.map(r => r.miss ? 5 : 2),
+        pointBackgroundColor: run.turns.map(r => r.miss ? "#b3341f" : "#e05a3f"),
+      }],
+    },
     options: {
       animation: false,
       scales: { x: { title: { display: true, text: "turn" } }, y: { min: 0, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  draw("ttftChart", {
+    type: "bar",
+    data: { labels, datasets: [{ label: "TTFT", data: run.turns.map(r => r.ttft_ms), backgroundColor: "#2f6de0" }] },
+    options: {
+      animation: false,
+      scales: { x: { title: { display: true, text: "turn" } }, y: { title: { display: true, text: "ms" } } },
       plugins: { legend: { display: false } },
     },
   });
@@ -105,22 +152,25 @@ function render(run) {
 
 function renderCompare(a, b) {
   compareTiles(a, b);
-  ledger(a.turns);
-  setMid("TTFT per turn", "Time to first token for each model on the same workload.");
-
-  const line = (run, color, dash) => ({
-    label: (dash ? "no cache " : "") + modelShort(run.model),
-    data: run.turns.map(r => dash ? r.cum_nocache : r.cum_cost),
-    borderColor: color, borderDash: dash ? [5, 4] : [], pointStyle: "line", tension: 0.2, pointRadius: 0,
-  });
-  const sets = [line(a, "#e05a3f", false), line(b, "#2f6de0", false)];
-  if (a.totals.nocache != null) sets.push(line(a, "#e05a3f", true));
-  if (b.totals.nocache != null) sets.push(line(b, "#2f6de0", true));
+  comparisonTable(a, b);
+  document.getElementById("ledgerTitle").textContent = "Comparison";
+  document.getElementById("perTurnWrap").style.display = "none";
+  document.getElementById("comparisonWrap").style.display = "";
+  setMid("Cost per turn", "Billed cost each turn for each model on the same task.");
 
   const labels = (a.turns.length >= b.turns.length ? a : b).turns.map(r => r.turn);
+
+  const line = (run, color, nocache) => ({
+    label: (nocache ? "no cache " : "") + lbl(run),
+    data: run.turns.map(r => nocache ? r.cum_nocache : r.cum_cost),
+    borderColor: color, pointStyle: "line", tension: 0.2, pointRadius: 0,
+  });
+  const costSets = [line(a, "#e05a3f", false), line(b, "#2f6de0", false)];
+  if (a.totals.nocache != null) costSets.push(line(a, "#f0a58f", true));
+  if (b.totals.nocache != null) costSets.push(line(b, "#93b4f0", true));
   draw("costChart", {
     type: "line",
-    data: { labels, datasets: sets },
+    data: { labels, datasets: costSets },
     options: {
       animation: false,
       scales: { x: { title: { display: true, text: "turn" } }, y: { ticks: { callback: v => "$" + v.toFixed(3) } } },
@@ -128,13 +178,13 @@ function renderCompare(a, b) {
     },
   });
 
-  const bars = (run, color) => ({ label: modelShort(run.model), data: run.turns.map(r => r.ttft_ms), backgroundColor: color });
+  const perTurn = (run, color, key) => ({ label: lbl(run), data: run.turns.map(r => r[key]), backgroundColor: color });
   draw("inputChart", {
     type: "bar",
-    data: { labels, datasets: [bars(a, "#e05a3f"), bars(b, "#2f6de0")] },
+    data: { labels, datasets: [perTurn(a, "#e05a3f", "cost"), perTurn(b, "#2f6de0", "cost")] },
     options: {
       animation: false,
-      scales: { x: { title: { display: true, text: "turn" } }, y: { title: { display: true, text: "TTFT ms" } } },
+      scales: { x: { title: { display: true, text: "turn" } }, y: { ticks: { callback: v => "$" + v.toFixed(4) } } },
       plugins: { legend: { position: "bottom" } },
     },
   });
@@ -144,13 +194,23 @@ function renderCompare(a, b) {
     data: {
       labels,
       datasets: [
-        { label: modelShort(a.model), data: a.turns.map(r => r.hit), borderColor: "#e05a3f", tension: 0.2, pointRadius: 2 },
-        { label: modelShort(b.model), data: b.turns.map(r => r.hit), borderColor: "#2f6de0", tension: 0.2, pointRadius: 2 },
+        { label: lbl(a), data: a.turns.map(r => r.hit), borderColor: "#e05a3f", tension: 0.2, pointRadius: 2 },
+        { label: lbl(b), data: b.turns.map(r => r.hit), borderColor: "#2f6de0", tension: 0.2, pointRadius: 2 },
       ],
     },
     options: {
       animation: false,
       scales: { x: { title: { display: true, text: "turn" } }, y: { min: 0, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: { legend: { position: "bottom" } },
+    },
+  });
+
+  draw("ttftChart", {
+    type: "bar",
+    data: { labels, datasets: [perTurn(a, "#e05a3f", "ttft_ms"), perTurn(b, "#2f6de0", "ttft_ms")] },
+    options: {
+      animation: false,
+      scales: { x: { title: { display: true, text: "turn" } }, y: { title: { display: true, text: "ms" } } },
       plugins: { legend: { position: "bottom" } },
     },
   });
@@ -165,6 +225,7 @@ function totalsFrom(turns) {
     turns: turns.length,
     input, cached, new: input - cached, output,
     hit: input ? +(cached / input * 100).toFixed(1) : 0,
+    misses: turns.filter(r => r.miss).length,
     cost: last.cum_cost,
     nocache: last.cum_nocache,
     saved_x: last.cum_cost ? +(last.cum_nocache / last.cum_cost).toFixed(2) : null,
@@ -206,7 +267,7 @@ function runLive() {
     }
     if (msg.turn) {
       turns.push(msg.turn);
-      setStatus("turn " + msg.turn.turn + " of 20");
+      setStatus("turn " + msg.turn.turn);
       render({ model: "live", turns, totals: totalsFrom(turns) });
     }
     if (msg.done) {

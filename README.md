@@ -1,8 +1,9 @@
 # Coral Run Inspector
 
 A small Flask tool that reads one Coral Bricks agent run and shows, turn by turn, what it
-cost, how much of each turn's input was served from cache, and what the same run would cost
-with no caching at the model's current rates.
+cost, how much of each turn's input was served from cache, where genuine cache misses are, and
+how time to first token moves across the run.
+
 The Coral console shows usage at the account level. This is the same data scoped to a single
 run, where you can see the re-read curve and where the cost actually goes.
 
@@ -13,34 +14,28 @@ run, where you can see the re-read curve and where the cost actually goes.
     pip install -r requirements.txt
     python app.py
 
-Open http://127.0.0.1:5001. It loads with a sample run in the dropdown, so you can see the
+Open http://127.0.0.1:5001. It loads with a captured run in the dropdown, so you can see the
 full view without a key or a live call.
 
-## Compare two models
+## The workload
 
-Capture the same workload on each model, then pick one in each dropdown (Run and vs) to overlay
-them: cumulative cost, TTFT per turn, and hit rate side by side.
-
-    export CORAL_KEY=cb_...
-    CORAL_MODEL=deepseek-v4.1-flash-fast python capture.py
-    CORAL_MODEL=deepseek-v4.1-flash python capture.py
-
-Refresh the page; both runs appear in the dropdowns.
+`capture.py` runs a real tool-using agent, not a canned script. The agent is given a debugging
+task against a small repo and a set of tools (`list_dir`, `read_file`, `grep`, `run_tests`). It
+decides which tools to call, the results are fed back, and it works until it reaches a fix.
+There is no output-token cap, and context grows as it reads files, so the run looks like an
+actual agent session rather than a fixed prompt replayed.
 
 ## Run live
 
-With a key set on the server, the "Run live" button runs a real 20-turn conversation against
-your account and fills the charts in as each turn completes.
+With a key set on the server, the "Run live" button runs the agent against your account and
+fills the charts in as each turn completes.
 
     export CORAL_KEY=cb_...
     python app.py
 
-Then click Run live. The status shows "turn N of 20", and the tiles, charts, and table update
-per turn. When it finishes, the run is saved to `runs/<session>.json` and selected in the Run
-dropdown.
-
-Live mode is live for runs this tool makes; it reads the usage each call returns. It does not
-stream account-wide traffic, which the public API does not expose.
+Then click Run live. When it finishes, the run is saved to `runs/<session>.json` and selected
+in the Run dropdown. Live mode is live for runs this tool makes; it reads the usage each call
+returns, and does not stream account-wide traffic, which the public API does not expose.
 
 ## Pricing
 
@@ -55,28 +50,43 @@ and output dominates the bill, so caching is close to a wash on cost there; it's
 on `deepseek-v4.1-flash`. The tool shows where a run's cost actually goes rather than claiming a
 fixed multiple.
 
+## Compare two models
+
+Capture the same task on each model, then pick one in each dropdown (Run and vs) to overlay
+them: cumulative cost, per-turn cost, TTFT, and hit rate side by side.
+
+    export CORAL_KEY=cb_...
+    CORAL_MODEL=deepseek-v4.1-flash-fast python capture.py
+    CORAL_MODEL=deepseek-v4.1-flash python capture.py
+
 ## What to look for
 
 - Cost across the run: the billed line vs the same run with no caching. The gap is what cached
   reads saved at the current rates.
 - Input per turn: each bar is the full re-sent context; the cached part is billed at the
   cached-read rate, the sliver on top is new.
-- Cache hit rate: turn 1 is a cold start. A mid-run drop is an unexplained cache miss — the API
-  doesn't report which replica served a request, so the cause isn't visible from the run alone.
-  Caching works in 256-token blocks, so small dips can be block rounding rather than a real miss.
+- Cache hit rate and genuine misses: turn 1 is a cold start. Caching works in 256-token blocks,
+  so the tool computes the expected cached amount for each turn (the previous turn's context,
+  floored to a 256-token block). When actual cached falls more than one block below expected,
+  that's a genuine miss rather than block rounding — those turns are flagged in the table and
+  marked on the hit-rate chart. The API doesn't report which replica served a request, so the
+  cause of a miss isn't visible from the run alone.
+- TTFT per turn: time to first token. A cache miss and a slow turn don't always line up, which
+  is why both are plotted.
 
 ## Capture without the UI
 
     export CORAL_KEY=cb_...
     python capture.py
 
-Runs the 20-turn conversation and writes `runs/<session>.json`. Refresh and pick it.
+Runs the agent and writes `runs/<session>.json`. Refresh and pick it.
 
 ## How it works
 
-- `capture.py` reads per-turn usage straight from the API: prompt tokens, cached tokens,
-  cache-write tokens, output tokens, and `cost`. It also snapshots model pricing from
-  `/v1/models`. Used by both the CLI and the live endpoint.
+- `capture.py` runs the tool-using agent and records per-turn usage straight from the API:
+  prompt tokens, cached tokens, cache-write tokens, output tokens, and `cost`. It also snapshots
+  model pricing from `/v1/models`. Used by both the CLI and the live endpoint.
 - `app.py` reads a run and builds the per-turn series: the new-vs-cached split, cumulative
-  billed cost, hit rate, and the no-caching counterfactual from the run's stored rates.
+  billed cost, hit rate, the expected-vs-actual cached comparison, and the no-caching
+  counterfactual from the run's stored rates.
 - The page renders those with Chart.js.

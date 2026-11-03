@@ -40,14 +40,23 @@
   </section>
 
   <section class="panel">
-    <h2>Per turn</h2>
-    <div class="table-wrap">
+    <h2>TTFT per turn</h2>
+    <p class="hint">Time to first token each turn.</p>
+    <canvas id="ttftChart" height="110"></canvas>
+  </section>
+
+  <section class="panel" id="ledgerPanel">
+    <h2 id="ledgerTitle">Per turn</h2>
+    <div class="table-wrap" id="perTurnWrap">
       <table id="ledger">
         <thead>
-          <tr><th>Turn</th><th>Input</th><th>Cached</th><th>New</th><th>Output</th><th>Hit</th><th>Cost</th><th>TTFT</th></tr>
+          <tr><th>Turn</th><th>Input</th><th>Cached</th><th>Expected</th><th>New</th><th>Output</th><th>Hit</th><th>Cost</th><th>TTFT</th></tr>
         </thead>
         <tbody></tbody>
       </table>
+    </div>
+    <div class="table-wrap" id="comparisonWrap" style="display:none">
+      <table id="cmpTable"></table>
     </div>
   </section>
 

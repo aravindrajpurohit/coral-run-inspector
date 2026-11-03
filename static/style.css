@@ -80,5 +80,7 @@ table { border-collapse: collapse; width: 100%; font-size: 0.85rem; font-variant
 th, td { text-align: right; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--muted); font-weight: 600; }
+tr.miss td { background: rgba(224, 90, 63, 0.08); }
+tr.miss td:first-child { box-shadow: inset 3px 0 0 var(--coral); }
 
 footer { max-width: 920px; margin: 1rem auto 2rem; padding: 0 1.25rem; }
