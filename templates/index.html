@@ -12,6 +12,8 @@
     <div class="run-pick">
       <label for="run">Run</label>
       <select id="run"></select>
+      <label for="run2">vs</label>
+      <select id="run2"></select>
       <button id="live">Run live</button>
       <span id="status" class="status"></span>
     </div>
@@ -21,13 +23,13 @@
 
   <section class="panel">
     <h2>Cost across the run</h2>
-    <p class="hint">Cumulative billed spend vs the same run priced without free cached reads.</p>
+    <p class="hint">Cumulative billed spend vs the same run with no caching, priced at this model's current rates.</p>
     <canvas id="costChart" height="110"></canvas>
   </section>
 
   <section class="panel">
-    <h2>Input per turn</h2>
-    <p class="hint">Each turn re-sends the whole conversation. Cached tokens are billed at $0.</p>
+    <h2 id="midTitle">Input per turn</h2>
+    <p class="hint" id="midHint">Each turn re-sends the whole conversation. The cached part is billed at the model's cached-read rate.</p>
     <canvas id="inputChart" height="110"></canvas>
   </section>
 

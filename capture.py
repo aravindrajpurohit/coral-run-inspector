@@ -50,6 +50,18 @@ TURNS = [
 ]
 
 
+def fetch_pricing(key, model):
+    headers = {"Authorization": f"Bearer {key}"}
+    with httpx.Client(timeout=30) as client:
+        r = client.get(f"{BASE}/models", headers=headers)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+        for m in r.json().get("data", []):
+            if m.get("id") == model:
+                return m.get("pricing", {})
+    raise RuntimeError(f"{model} not in /models")
+
+
 def _send(key, model, session, messages):
     body = {
         "model": model,
@@ -103,6 +115,7 @@ def run_live(key, model=MODEL, delay=1.5):
             "input": (usage or {}).get("prompt_tokens"),
             "cached": details.get("cached_tokens"),
             "output": (usage or {}).get("completion_tokens"),
+            "cache_write": (usage or {}).get("cache_write_tokens"),
             "cost": (usage or {}).get("cost"),
             "ttft_ms": ttft_ms,
         }
@@ -114,16 +127,17 @@ def main():
     if not key:
         sys.exit("set CORAL_KEY")
     model = os.environ.get("CORAL_MODEL", MODEL)
+    pricing = fetch_pricing(key, model)
     rows = []
     session = None
     for row in run_live(key, model):
         session = row["session"]
-        rows.append({k: row[k] for k in ("turn", "input", "cached", "output", "cost", "ttft_ms")})
+        rows.append({k: row[k] for k in ("turn", "input", "cached", "output", "cache_write", "cost", "ttft_ms")})
         print(f"turn {row['turn']:>2}: input={row['input']:>6} cached={row['cached']:>6} cost=${row['cost']:.6f}")
     os.makedirs("runs", exist_ok=True)
     path = os.path.join("runs", f"{session}.json")
     with open(path, "w") as f:
-        json.dump({"session": session, "model": model, "turns": rows}, f, indent=2)
+        json.dump({"session": session, "model": model, "pricing": pricing, "turns": rows}, f, indent=2)
     print(f"\nwrote {path}")
 
 
