@@ -1,0 +1,135 @@
+{
+  "session": "run-3db90455",
+  "model": "deepseek-v4.1-flash-value",
+  "pricing": {
+    "cache_write_per_m": 0.0,
+    "cached_input_per_m": 0.003,
+    "input_per_m": 0.005,
+    "output_per_m": 0.57
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "input": 549,
+      "cached": 0,
+      "output": 43,
+      "cache_write": null,
+      "cost": 2.725e-05,
+      "ttft_ms": 1260,
+      "gen_ms": 1433,
+      "decode_tps": 30.0,
+      "tools": [
+        "list_dir",
+        "run_tests"
+      ]
+    },
+    {
+      "turn": 2,
+      "input": 749,
+      "cached": 512,
+      "output": 382,
+      "cache_write": null,
+      "cost": 0.00022046,
+      "ttft_ms": 340,
+      "gen_ms": 4441,
+      "decode_tps": 86.0,
+      "tools": [
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file"
+      ]
+    },
+    {
+      "turn": 3,
+      "input": 3063,
+      "cached": 640,
+      "output": 133,
+      "cache_write": null,
+      "cost": 8.984e-05,
+      "ttft_ms": 994,
+      "gen_ms": 2650,
+      "decode_tps": 50.2,
+      "tools": [
+        "grep",
+        "grep"
+      ]
+    },
+    {
+      "turn": 4,
+      "input": 3450,
+      "cached": 3072,
+      "output": 59,
+      "cache_write": null,
+      "cost": 4.474e-05,
+      "ttft_ms": 502,
+      "gen_ms": 2708,
+      "decode_tps": 21.8,
+      "tools": [
+        "run_tests"
+      ]
+    },
+    {
+      "turn": 5,
+      "input": 3612,
+      "cached": 3456,
+      "output": 95,
+      "cache_write": null,
+      "cost": 6.53e-05,
+      "ttft_ms": 271,
+      "gen_ms": 2041,
+      "decode_tps": 46.5,
+      "tools": [
+        "grep"
+      ]
+    },
+    {
+      "turn": 6,
+      "input": 3737,
+      "cached": 3584,
+      "output": 71,
+      "cache_write": null,
+      "cost": 5.199e-05,
+      "ttft_ms": 1106,
+      "gen_ms": 1419,
+      "decode_tps": 50.0,
+      "tools": [
+        "read_file"
+      ]
+    },
+    {
+      "turn": 7,
+      "input": 3949,
+      "cached": 3712,
+      "output": 23,
+      "cache_write": null,
+      "cost": 2.543e-05,
+      "ttft_ms": 339,
+      "gen_ms": 15,
+      "decode_tps": 1533.3,
+      "tools": [
+        "run_tests"
+      ]
+    },
+    {
+      "turn": 8,
+      "input": 4075,
+      "cached": 3968,
+      "output": 1310,
+      "cache_write": null,
+      "cost": 0.00075914,
+      "ttft_ms": 373,
+      "gen_ms": 19321,
+      "decode_tps": 67.8,
+      "tools": []
+    }
+  ]
+}
